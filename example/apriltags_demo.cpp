@@ -104,8 +104,6 @@ const double PI = 3.14159265358979323846;
 #endif
 const double TWOPI = 2.0*PI;
 
-const string filepath="/home/yao/nansha/test_label/";
-
 /**
  * Normalize angle to be within the interval [-pi,pi].
  */
@@ -426,35 +424,6 @@ public:
         // also highlight in the image
         detections[i].draw(image);
       }
-//      cv::namedWindow(m_name,CV_WINDOW_NORMAL);
-//      imshow(m_name, image); // OpenCV call
-//      cv::waitKey();
-      cout<<"file name: "<<m_name<<endl;
-
-      std::string filename;
-      if(!detections.size())
-      {
-          vector<string> vname = split(m_name,"/");
-          string filepath_add=filepath+"failed/";
-          if (access(filepath_add.c_str(), 0) == -1)	//如果文件夹不存在
-              mkdir(filepath_add.c_str(),0777);
-          filename=filepath_add+vname[vname.size()-2]+"_"+vname[vname.size()-1];
-          cv::imwrite(filename,image_gray);
-      }else{
-          string filepath_add=filepath+"success/";
-          if (access(filepath_add.c_str(), 0) == -1)	//如果文件夹不存在
-              mkdir(filepath_add.c_str(),0777);
-          if(isInclude(detections[0].id))
-          {
-//              cout<<"count: "<<m_tagCount[detections[0].id]<<endl;
-              filename=filepath_add+std::to_string(detections[0].id)+"_"+to_string(m_tagCount[detections[0].id])+".jpg";
-              cv::imwrite(filename,image_gray);
-          } else{
-              filename=filepath_add+std::to_string(detections[0].id)+".jpg";
-              cv::imwrite(filename,image_gray);
-          }
-      }
-      cv::waitKey(5);
     }
 
     // optionally send tag information to serial port (e.g. to Arduino)

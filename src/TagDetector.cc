@@ -236,7 +236,6 @@ namespace AprilTags {
 
     const float PI =3.14159265354;
     const int   PERIMETER_THRESHOLD=250;
-    const string preFixPath="/home/yao/nansha/test_label/";
 
     std::vector<TagDetection> TagDetector::extractTags(const cv::Mat &image_src, int index_up_down) {
 
@@ -652,17 +651,6 @@ namespace AprilTags {
             Quad::search(fimOrig, tmp, segments[i], 0, quads, opticalCenter);
         }
 
-        if(quads.size()==0)
-        {
-            string tmp_path=preFixPath+"Rectfail/";
-            if (access(tmp_path.c_str(), 0) == -1)	//如果文件夹不存在
-                mkdir(tmp_path.c_str(),0777);
-            string filename=tmp_path+"Rectfail"+to_string(N++)+".jpg";
-            cv::imwrite(filename,image_src);
-            cout<<"Rect dectect failed file save to: "<<filename<<endl;
-        }
-
-
 #ifdef DEBUG_APRIL
         {
             for (unsigned int j = 0; j < segments.size(); j++) {
@@ -726,31 +714,11 @@ namespace AprilTags {
 
         std::vector<TagDetection> detections;
 
-        N++;
-        bool saved=false;
-        float max_perimeter=0;
-        for(unsigned int pi=0; pi < quads.size();pi++)
-        {
-            Quad &q = quads[pi];
-            if(q.observedPerimeter>max_perimeter)
-                max_perimeter=q.observedPerimeter;
-        }
-
         for (unsigned int qi = 0; qi < quads.size(); qi++) {
             Quad &quad = quads[qi];
 
-            if (max_perimeter < PERIMETER_THRESHOLD)
+            if (quad.observedPerimeter < PERIMETER_THRESHOLD)
             {
-                string tmp_path=preFixPath+"Rectfail/";
-                if (access(tmp_path.c_str(), 0) == -1)	//如果文件夹不存在
-                    mkdir(tmp_path.c_str(),0777);
-                string filename=tmp_path+"Rectfail"+to_string(N)+".jpg";
-                if (!saved)
-                {
-                    cv::imwrite(filename,image_src);
-                    cout<<"Rect dectect failed file save to: "<<filename<<endl;
-                    saved=true;
-                }
                 continue;
             }
 

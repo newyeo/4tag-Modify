@@ -61,15 +61,15 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/TagDetector.cc">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="517">
-              <caret line="653" lean-forward="true" selection-start-line="653" selection-end-line="653" />
+            <state relative-caret-position="497">
+              <caret line="238" selection-start-line="238" selection-end-line="238" />
               <folding>
                 <element signature="e#12267#13053#0" expanded="true" />
                 <element signature="e#20761#21194#0" expanded="true" />
-                <marker date="1561624742360" expanded="false" signature="20123:20535" ph="{...}" />
+                <marker date="1561627662176" expanded="false" signature="20063:20475" ph="{...}" />
               </folding>
             </state>
           </provider>
@@ -96,11 +96,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/example/apriltags_demo.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="558">
-              <caret line="107" lean-forward="true" selection-start-line="107" selection-end-line="107" />
+            <state relative-caret-position="-399">
+              <caret line="425" column="7" selection-start-line="425" selection-start-column="7" selection-end-line="425" selection-end-column="7" />
               <folding>
                 <element signature="e#670#689#0" expanded="true" />
               </folding>
@@ -138,8 +138,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/cmake-build-debug/include/AprilTags/TagDetector.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="522">
-              <caret line="24" column="12" selection-start-line="24" selection-start-column="12" selection-end-line="24" selection-end-column="12" />
+            <state relative-caret-position="464">
+              <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
             </state>
           </provider>
         </entry>
@@ -196,9 +196,9 @@
         <option value="$PROJECT_DIR$/src/Edge.cc" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/src/TagFamily.cc" />
-        <option value="$PROJECT_DIR$/example/apriltags_demo.cpp" />
         <option value="$PROJECT_DIR$/cmake-build-debug/include/AprilTags/TagDetector.h" />
         <option value="$PROJECT_DIR$/src/TagDetector.cc" />
+        <option value="$PROJECT_DIR$/example/apriltags_demo.cpp" />
       </list>
     </option>
   </component>
@@ -330,12 +330,12 @@
       <workItem from="1561431326248" duration="4337000" />
       <workItem from="1561519996303" duration="15746000" />
       <workItem from="1561545483425" duration="8292000" />
-      <workItem from="1561619992488" duration="4167000" />
+      <workItem from="1561619992488" duration="4891000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="156065000" />
+    <option name="totallyTimeSpent" value="156789000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -714,16 +714,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/example/apriltags_demo.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="558">
-          <caret line="107" lean-forward="true" selection-start-line="107" selection-end-line="107" />
-          <folding>
-            <element signature="e#670#689#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/tool/opencv-3.4.0/modules/core/src/glob.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3509">
@@ -733,19 +723,29 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/cmake-build-debug/include/AprilTags/TagDetector.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="522">
-          <caret line="24" column="12" selection-start-line="24" selection-start-column="12" selection-end-line="24" selection-end-column="12" />
+        <state relative-caret-position="464">
+          <caret line="22" column="85" selection-start-line="22" selection-start-column="85" selection-end-line="22" selection-end-column="85" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/TagDetector.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="517">
-          <caret line="653" lean-forward="true" selection-start-line="653" selection-end-line="653" />
+        <state relative-caret-position="497">
+          <caret line="238" selection-start-line="238" selection-end-line="238" />
           <folding>
             <element signature="e#12267#13053#0" expanded="true" />
             <element signature="e#20761#21194#0" expanded="true" />
-            <marker date="1561624742360" expanded="false" signature="20123:20535" ph="{...}" />
+            <marker date="1561627662176" expanded="false" signature="20063:20475" ph="{...}" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/example/apriltags_demo.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-399">
+          <caret line="425" column="7" selection-start-line="425" selection-start-column="7" selection-end-line="425" selection-end-column="7" />
+          <folding>
+            <element signature="e#670#689#0" expanded="true" />
           </folding>
         </state>
       </provider>

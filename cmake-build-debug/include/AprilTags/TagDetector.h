@@ -22,8 +22,6 @@ public:
 	
 	std::vector<TagDetection> extractTags(const cv::Mat& image, int index_up_down=0);
 
-	int N=0;
-
 };
 
 } // namespace
