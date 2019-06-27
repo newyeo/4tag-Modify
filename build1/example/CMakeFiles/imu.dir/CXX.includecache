@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/yao/projects/code_backup/circle_fit_distance_module/3rdparty/apriltag/apriltags/example/Serial.cpp
+fcntl.h
+-
+termios.h
+-
+stdlib.h
+-
+iostream
+-
+sstream
+-
+unistd.h
+-
+Serial.h
+/home/yao/projects/code_backup/circle_fit_distance_module/3rdparty/apriltag/apriltags/example/Serial.h
+
+/home/yao/projects/code_backup/circle_fit_distance_module/3rdparty/apriltag/apriltags/example/Serial.h
+string
+-
+
+/home/yao/projects/code_backup/circle_fit_distance_module/3rdparty/apriltag/apriltags/example/imu.cpp
+iostream
+-
+string
+-
+stdio.h
+-
+math.h
+-
+Serial.h
+/home/yao/projects/code_backup/circle_fit_distance_module/3rdparty/apriltag/apriltags/example/Serial.h
+
