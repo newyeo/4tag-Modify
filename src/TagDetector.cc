@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <vector>
 
 #include <Eigen/Dense>
 
@@ -24,6 +25,8 @@
 
 #include "AprilTags/TagDetector.h"
 
+#include <sys/time.h>
+
 //#define DEBUG_APRIL
 
 #ifdef DEBUG_APRIL
@@ -31,11 +34,209 @@
 #include <opencv/highgui.h>
 #endif
 
+//#define FIND_RECT
+
+
+#include "opencv2/video/tracking.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
+#include "opencv2/opencv.hpp"
+
+//#include <cmath>
+//#include <cstdlib>
+//#include <random>
+//#include <stdlib.h>
+
+
 using namespace std;
+using namespace cv;
+
+#ifdef FIND_RECT
+struct  Center
+{
+    Point2d location;
+    double radius;
+    double confidence;
+};
+
+SimpleBlobDetector::Params params;
+
+void findBlobs(const cv::Mat &image, const cv::Mat &binaryImage, vector<Center> &centers)
+{
+    (void)image;
+    centers.clear();
+
+    vector < vector<Point> > contours;
+    Mat tmpBinaryImage = binaryImage.clone();
+    findContours(tmpBinaryImage, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+    for (size_t contourIdx = 0; contourIdx < contours.size(); contourIdx++)
+    {
+        Center center;
+        center.confidence = 1;
+        Moments moms = moments(Mat(contours[contourIdx]));
+        if (params.filterByArea)
+        {
+            double area = moms.m00;
+            if (area < params.minArea || area >= params.maxArea)
+                continue;
+        }
+
+        if (params.filterByCircularity)
+        {
+            double area = moms.m00;
+            double perimeter = arcLength(Mat(contours[contourIdx]), true);
+            double ratio = 4 * CV_PI * area / (perimeter * perimeter);
+            if (ratio < params.minCircularity || ratio >= params.maxCircularity)
+                continue;
+        }
+
+        if (params.filterByInertia)
+        {
+            double denominator = sqrt(pow(2 * moms.mu11, 2) + pow(moms.mu20 - moms.mu02, 2));
+            const double eps = 1e-2;
+            double ratio;
+            if (denominator > eps)
+            {
+                double cosmin = (moms.mu20 - moms.mu02) / denominator;
+                double sinmin = 2 * moms.mu11 / denominator;
+                double cosmax = -cosmin;
+                double sinmax = -sinmin;
+
+                double imin = 0.5 * (moms.mu20 + moms.mu02) - 0.5 * (moms.mu20 - moms.mu02) * cosmin - moms.mu11 * sinmin;
+                double imax = 0.5 * (moms.mu20 + moms.mu02) - 0.5 * (moms.mu20 - moms.mu02) * cosmax - moms.mu11 * sinmax;
+                ratio = imin / imax;
+            }
+            else
+            {
+                ratio = 1;
+            }
+
+            if (ratio < params.minInertiaRatio || ratio >= params.maxInertiaRatio)
+                continue;
+
+            center.confidence = ratio * ratio;
+        }
+
+        if (params.filterByConvexity)
+        {
+            vector < Point > hull;
+            convexHull(Mat(contours[contourIdx]), hull);
+            double area = contourArea(Mat(contours[contourIdx]));
+            double hullArea = contourArea(Mat(hull));
+            double ratio = area / hullArea;
+            if (ratio < params.minConvexity || ratio >= params.maxConvexity)
+                continue;
+        }
+
+        center.location = Point2d(moms.m10 / moms.m00, moms.m01 / moms.m00);
+
+        if (params.filterByColor)
+        {
+            if (binaryImage.at<uchar> (cvRound(center.location.y), cvRound(center.location.x)) != params.blobColor)
+                continue;
+        }
+
+        //compute blob radius
+        {
+            vector<double> dists;
+            for (size_t pointIdx = 0; pointIdx < contours[contourIdx].size(); pointIdx++)
+            {
+                Point2d pt = contours[contourIdx][pointIdx];
+                dists.push_back(norm(center.location - pt));
+            }
+            std::sort(dists.begin(), dists.end());
+            center.radius = (dists[(dists.size() - 1) / 2] + dists[dists.size() / 2]) / 2.;
+        }
+
+        centers.push_back(center);
+
+#ifdef DEBUG_BLOB_DETECTOR
+        //    circle( keypointsImage, center.location, 1, Scalar(0,0,255), 1 );
+#endif
+    }
+#ifdef DEBUG_BLOB_DETECTOR
+    //  imshow("bk", keypointsImage );
+    //  waitKey();
+#endif
+}
+/*
+//distance -- max distance to the random line for voting
+//ngon     -- n-gon to be detected
+//itmax    -- max iteration times
+void ransacLines(std::vector<cv::Point2f>& input,std::vector<cv::Vec4d>& lines,
+                    double distance ,  unsigned int ngon,unsigned int itmax ){
+
+    if(!input.empty())
+    for(int i = 0; i < ngon; ++i)
+    {
+        unsigned int Mmax = 0;
+        cv::Point imax;
+        cv::Point jmax;
+        cv::Vec4d line;
+        size_t t1 , t2;
+        
+        std::random_device rd;     // only used once to initialise (seed) engine
+        std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+        std::uniform_int_distribution<int> uni(0,input.size()-1); // guaranteed unbiased // 概率相同
+
+        unsigned int it = itmax;
+        while(--it){
+            t1 = uni(rng);
+            t2 = uni(rng);
+            t2 = (t1 == t2 ? uni(rng): t2);
+            unsigned int M = 0;
+            cv::Point i = input[t1];
+            cv::Point j = input[t2];
+            for(auto a : input){
+                double dis = fabs((j.x - i.x)*(a.y - i.y) - (j.y - i.y)*(a.x - i.x)) /
+                        sqrt((j.x - i.x)*(j.x - i.x) + (j.y - i.y)*(j.y - i.y));
+
+                if( dis < distance)
+                    ++M;
+            }
+            if(M > Mmax ){
+                Mmax = M;
+                imax = i;
+                jmax = j;
+            }
+        }
+        line[0] = imax.x;
+        line[1] = imax.y;
+        line[2] = jmax.x;
+        line[3] = jmax.y;
+        lines.push_back(line);
+        auto iter = input.begin();
+        while(iter != input.end()){
+            double dis = fabs((jmax.x - imax.x)*((*iter).y - imax.y) -
+                                    (jmax.y - imax.y)*((*iter).x - imax.x))
+                         / sqrt((jmax.x - imax.x)*(jmax.x - imax.x)
+                                 + (jmax.y - imax.y)*(jmax.y - imax.y));
+            if(dis < distance)
+                iter = input.erase(iter);  //erase the dis within , then point to
+                                           //   the next element
+            else ++iter;
+        }
+    }
+    else std::cout << "no input to ransacLines" << std::endl;
+}
+*/
+int num_save = 0;
+#endif
 
 namespace AprilTags {
 
-  std::vector<TagDetection> TagDetector::extractTags(const cv::Mat& image) {
+std::vector<TagDetection> TagDetector::extractTags(const cv::Mat& image, int index_up_down) 
+{
+
+    //std::cout<<"adfafjlksdjflj"<<std::endl;
+std::vector<TagDetection> goodDetections;
+    
+    double timeuse;
+
+    struct timeval begin_extractTags;
+    gettimeofday(&begin_extractTags, NULL);
 
     // convert to internal AprilTags image (todo: slow, change internally to OpenCV)
     int width = image.cols;
@@ -50,49 +251,7 @@ namespace AprilTags {
     }
     std::pair<int,int> opticalCenter(width/2, height/2);
 
-#ifdef DEBUG_APRIL
-#if 0
-  { // debug - write
-    int height_ = fimOrig.getHeight();
-    int width_  = fimOrig.getWidth();
-    cv::Mat image(height_, width_, CV_8UC3);
-    {
-      for (int y=0; y<height_; y++) {
-        for (int x=0; x<width_; x++) {
-          cv::Vec3b v;
-          //        float vf = fimMag.get(x,y);
-          float vf = fimOrig.get(x,y);
-          int val = (int)(vf * 255.);
-          if ((val & 0xffff00) != 0) {printf("problem... %i\n", val);}
-          for (int k=0; k<3; k++) {
-            v(k) = val;
-          }
-          image.at<cv::Vec3b>(y, x) = v;
-        }
-      }
-    }
-    imwrite("out.bmp", image);
-  }
-#endif
-#if 0
-  FloatImage fimOrig = fimOrig_;
-  { // debug - read
 
-    cv::Mat image = cv::imread("test.bmp");
-    int height_ = fimOrig.getHeight();
-    int width_  = fimOrig.getWidth();
-    {
-      for (int y=0; y<height_; y++) {
-        for (int x=0; x<width_; x++) {
-          cv::Vec3b v = image.at<cv::Vec3b>(y,x);
-          float val = (float)v(0)/255.;
-          fimOrig.set(x,y,val);
-        }
-      }
-    }
-  }
-#endif
-#endif
 
   //================================================================
   // Step one: preprocess image (convert to grayscale) and low pass if necessary
@@ -124,6 +283,14 @@ namespace AprilTags {
     fim.filterFactoredCentered(filt, filt);
   }
 
+  struct timeval Step_two_extractTags;
+  gettimeofday(&Step_two_extractTags, NULL);
+
+  timeuse = 1000000*(Step_two_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_two_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
+
   //================================================================
   // Step two: Compute the local gradient. We store the direction and magnitude.
   // This step is quite sensitve to noise, since a few bad theta estimates will
@@ -147,9 +314,13 @@ namespace AprilTags {
 
   FloatImage fimTheta(fimSeg.getWidth(), fimSeg.getHeight());
   FloatImage fimMag(fimSeg.getWidth(), fimSeg.getHeight());
-  
 
+
+  
+  
+	
   #pragma omp parallel for
+  //cout<<fimSeg.getHeight()<<", "<<fimSeg.getWidth()<<endl;
   for (int y = 1; y < fimSeg.getHeight()-1; y++) {
     for (int x = 1; x < fimSeg.getWidth()-1; x++) {
       float Ix = fimSeg.get(x+1, y) - fimSeg.get(x-1, y);
@@ -170,7 +341,8 @@ namespace AprilTags {
 #ifdef DEBUG_APRIL
   int height_ = fimSeg.getHeight();
   int width_  = fimSeg.getWidth();
-  cv::Mat image(height_, width_, CV_8UC3);
+  cout<<height_<<", "<<width_<<endl;
+  cv::Mat image_text(height_, width_, CV_8UC3);
   {
     for (int y=0; y<height_; y++) {
       for (int x=0; x<width_; x++) {
@@ -182,16 +354,30 @@ namespace AprilTags {
         for (int k=0; k<3; k++) {
           v(k) = val;
         }
-        image.at<cv::Vec3b>(y, x) = v;
+        image_text.at<cv::Vec3b>(y, x) = v;
       }
     }
   }
+  cv::imshow("debug_april", image_text);
+  waitKey(10);
 #endif
 
+  struct timeval Step_three_extractTags;
+  gettimeofday(&Step_three_extractTags, NULL);
+
+  timeuse = 1000000*(Step_three_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_three_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
   //================================================================
   // Step three. Extract edges by grouping pixels with similar
   // thetas together. This is a greedy algorithm: we start with
   // the most similar pixels.  We use 4-connectivity.
+/*
+  struct timeval tpstart1;
+  float timeuse1;
+  gettimeofday(&tpstart1, NULL);
+*/
   UnionFindSimple uf(fimSeg.getWidth()*fimSeg.getHeight());
   
   vector<Edge> edges(width*height*4);
@@ -235,7 +421,22 @@ namespace AprilTags {
     std::stable_sort(edges.begin(), edges.end());
     Edge::mergeEdges(edges,uf,tmin,tmax,mmin,mmax);
   }
-          
+/*
+        struct timeval tpend1;
+        gettimeofday(&tpend1, NULL);
+        timeuse1 = 1000000*(tpend1.tv_sec - tpstart1.tv_sec)+tpend1.tv_usec-tpstart1.tv_usec;
+        timeuse1/=1000.0;
+
+	cout<<"timeuse1 is:"<<timeuse1<<endl;
+ */ 
+
+  struct timeval Step_four_extractTags;
+  gettimeofday(&Step_four_extractTags, NULL);  
+
+  timeuse = 1000000*(Step_four_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_four_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;      
   //================================================================
   // Step four: Loop over the pixels again, collecting statistics for each cluster.
   // We will soon fit lines (segments) to these points.
@@ -257,6 +458,14 @@ namespace AprilTags {
       points.push_back(XYWeight(x,y,fimMag.get(x,y)));
     }
   }
+
+  struct timeval Step_five_extractTags;
+  gettimeofday(&Step_five_extractTags, NULL);
+
+  timeuse = 1000000*(Step_five_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_five_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
 
   //================================================================
   // Step five: Loop over the clusters, fitting lines (which we call Segments).
@@ -336,6 +545,14 @@ namespace AprilTags {
 #endif
 #endif
 
+  struct timeval Step_six_extractTags;
+  gettimeofday(&Step_six_extractTags, NULL);
+
+  timeuse = 1000000*(Step_six_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_six_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
+
   // Step six: For each segment, find segments that begin where this segment ends.
   // (We will chain segments together next...) The gridder accelerates the search by
   // building (essentially) a 2D hash table.
@@ -385,6 +602,14 @@ namespace AprilTags {
     }
   }
 
+  struct timeval Step_seven_extractTags;
+  gettimeofday(&Step_seven_extractTags, NULL);
+
+  timeuse = 1000000*(Step_seven_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_seven_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
+
   //================================================================
   // Step seven: Search all connected segments to see if any form a loop of length 4.
   // Add those to the quads list.
@@ -422,6 +647,14 @@ namespace AprilTags {
   }
 #endif
 
+
+  struct timeval Step_eight_extractTags;
+  gettimeofday(&Step_eight_extractTags, NULL);
+
+  timeuse = 1000000*(Step_eight_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_eight_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
   //================================================================
   // Step eight. Decode the quads. For each quad, we first estimate a
   // threshold color to decide between 0 and 1. Then, we read off the
@@ -535,6 +768,14 @@ namespace AprilTags {
   }
 #endif
 
+  struct timeval Step_nine_extractTags;
+  gettimeofday(&Step_nine_extractTags, NULL);
+
+  timeuse = 1000000*(Step_nine_extractTags.tv_sec - begin_extractTags.tv_sec)+Step_nine_extractTags.tv_usec-begin_extractTags.tv_usec;
+  timeuse/=1000.0;
+  //if(timeuse >= 25 && index_up_down == 1)
+     //return goodDetections;
+
   //================================================================
   //Step nine: Some quads may be detected more than once, due to
   //partial occlusion and our aggressive attempts to recover from
@@ -542,7 +783,6 @@ namespace AprilTags {
   //keep the one with the lowest error, and if the error is the same,
   //the one with the greatest observed perimeter.
 
-  std::vector<TagDetection> goodDetections;
 
   // NOTE: allow multiple non-overlapping detections of the same target.
 
@@ -551,6 +791,8 @@ namespace AprilTags {
     const TagDetection &thisTagDetection = *it;
 
     bool newFeature = true;
+
+
 
     for ( unsigned int odidx = 0; odidx < goodDetections.size(); odidx++) {
       TagDetection &otherTagDetection = goodDetections[odidx];

@@ -20,7 +20,7 @@ public:
   // note: TagFamily is instantiated here from TagCodes
 	TagDetector(const TagCodes& tagCodes) : thisTagFamily(tagCodes) {}
 	
-	std::vector<TagDetection> extractTags(const cv::Mat& image);
+	std::vector<TagDetection> extractTags(const cv::Mat& image, int index_up_down=0);
 	
 };
 
