@@ -1,0 +1,11 @@
+# ignore the text editors
+*~
+*.autosave
+.*.sw*
+
+# ignore the building
+build
+*build
+
+# ignore the previous svn dir
+.svn
