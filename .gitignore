@@ -2,10 +2,19 @@
 *~
 *.autosave
 .*.sw*
+~$*
 
 # ignore the building
 build
 *build
+cmake-build-debug/
 
 # ignore the previous svn dir
 .svn
+
+# ignore the idea
+.idea/
+
+# ignore the images
+*.jpg
+*.png
