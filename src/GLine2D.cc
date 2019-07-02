@@ -30,8 +30,8 @@ std::pair<float,float> GLine2D::intersectionWith(const GLine2D& line) const {
   float m10 = dy;
   float m11 = -line.getDy();
 
-  // determinant of 'm'
-  float det = m00*m11 - m01*m10;
+  // determinant of 'm'                 | m00 m01 |
+  float det = m00*m11 - m01*m10;   //   | m10 m11 |
 
   // parallel lines? if so, return (-1,0).
   if (fabs(det) < 1e-10)

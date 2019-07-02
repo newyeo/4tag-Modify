@@ -17,9 +17,12 @@ using namespace std;
 
 #include <iostream>
 #include <cstring>
+#include <string>
 #include <vector>
 #include <list>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 const string usage = "\n"
   "Usage:\n"
@@ -68,6 +71,7 @@ const string intro = "\n"
 #include "AprilTags/Tag16h5.h"
 #include "AprilTags/Tag25h7.h"
 #include "AprilTags/Tag25h9.h"
+#include "AprilTags/Tag36h8.h"
 #include "AprilTags/Tag36h9.h"
 #include "AprilTags/Tag36h11.h"
 
@@ -99,6 +103,8 @@ double tic() {
 const double PI = 3.14159265358979323846;
 #endif
 const double TWOPI = 2.0*PI;
+
+const string filepath="/home/yao/nansha/test_label/";
 
 /**
  * Normalize angle to be within the interval [-pi,pi].
@@ -133,6 +139,8 @@ class Demo {
   bool m_arduino; // send tag detections to serial port?
   bool m_timing; // print timing information for each tag extraction call
 
+  long unsigned int numNoDetections;
+  std::string m_name;
   int m_width; // image size in pixels
   int m_height;
   double m_tagSize; // April tag side length in meters of square black frame
@@ -140,6 +148,8 @@ class Demo {
   double m_fy;
   double m_px; // camera principal point
   double m_py;
+
+  map<int,int> m_tagCount;
 
   int m_deviceId; // camera id (in case of multiple cameras)
 
@@ -161,6 +171,7 @@ public:
     m_tagDetector(NULL),
     m_tagCodes(AprilTags::tagCodes36h11),
 
+    numNoDetections(0),
     m_draw(true),
     m_arduino(false),
     m_timing(false),
@@ -188,6 +199,8 @@ public:
       m_tagCodes = AprilTags::tagCodes25h7;
     } else if (s=="25h9") {
       m_tagCodes = AprilTags::tagCodes25h9;
+    } else if (s=="36h8") {
+      m_tagCodes = AprilTags::tagCodes36h8;
     } else if (s=="36h9") {
       m_tagCodes = AprilTags::tagCodes36h9;
     } else if (s=="36h11") {
@@ -274,7 +287,7 @@ public:
 
     if (argc > optind) {
       for (int i=0; i<argc-optind; i++) {
-        m_imgNames.push_back(argv[optind+i]);
+//        m_imgNames.push_back(argv[optind+i]);
       }
     }
   }
@@ -284,7 +297,7 @@ public:
 
     // prepare window for drawing the camera images
     if (m_draw) {
-      cv::namedWindow(windowName, 1);
+//      cv::namedWindow(windowName, 1);
     }
 
     // optional: prepare serial port for communication with Arduino
@@ -382,7 +395,7 @@ public:
     // for suitable factors.
   }
 
-  void processImage(cv::Mat& image, cv::Mat& image_gray) {
+  int processImage(cv::Mat& image, cv::Mat& image_gray) {
     // alternative way is to grab, then retrieve; allows for
     // multiple grab when processing below frame rate - v4l keeps a
     // number of frames buffered, which can lead to significant lag
@@ -395,7 +408,7 @@ public:
     if (m_timing) {
       t0 = tic();
     }
-    vector<AprilTags::TagDetection> detections = m_tagDetector->extractTags(image_gray);
+    vector<AprilTags::TagDetection> detections = m_tagDetector->extractTags(image);
     if (m_timing) {
       double dt = tic()-t0;
       cout << "Extracting tags took " << dt << " seconds." << endl;
@@ -413,7 +426,35 @@ public:
         // also highlight in the image
         detections[i].draw(image);
       }
-      imshow(windowName, image); // OpenCV call
+//      cv::namedWindow(m_name,CV_WINDOW_NORMAL);
+//      imshow(m_name, image); // OpenCV call
+//      cv::waitKey();
+      cout<<"file name: "<<m_name<<endl;
+
+      std::string filename;
+      if(!detections.size())
+      {
+          vector<string> vname = split(m_name,"/");
+          string filepath_add=filepath+"failed/";
+          if (access(filepath_add.c_str(), 0) == -1)	//如果文件夹不存在
+              mkdir(filepath_add.c_str(),0777);
+          filename=filepath_add+vname[vname.size()-2]+"_"+vname[vname.size()-1];
+          cv::imwrite(filename,image_gray);
+      }else{
+          string filepath_add=filepath+"success/";
+          if (access(filepath_add.c_str(), 0) == -1)	//如果文件夹不存在
+              mkdir(filepath_add.c_str(),0777);
+          if(isInclude(detections[0].id))
+          {
+//              cout<<"count: "<<m_tagCount[detections[0].id]<<endl;
+              filename=filepath_add+std::to_string(detections[0].id)+"_"+to_string(m_tagCount[detections[0].id])+".jpg";
+              cv::imwrite(filename,image_gray);
+          } else{
+              filename=filepath_add+std::to_string(detections[0].id)+".jpg";
+              cv::imwrite(filename,image_gray);
+          }
+      }
+      cv::waitKey(5);
     }
 
     // optionally send tag information to serial port (e.g. to Arduino)
@@ -437,18 +478,68 @@ public:
         m_serial.print("-1,0.0,0.0,0.0\n");
       }
     }
+    if(detections.size()==0)
+        return 1;
+    else
+        return 0;
   }
 
-  // Load and process a single image
+    bool isInclude(const int tagID)
+    {
+        for(map<int,int>::iterator it= m_tagCount.begin(); it != m_tagCount.end(); it++)
+        {
+            if(tagID == it->first)
+            {
+                it->second++;
+                return true;
+            }
+        }
+        m_tagCount.insert(pair<int,int>(tagID,1));
+        return false;
+    }
+
+    vector<string> split(const string &str, const string &pattern)
+    {
+        vector<string> res;
+        if(str == "")
+            return res;
+        //在字符串末尾也加入分隔符，方便截取最后一段
+        string strs = str + pattern;
+        size_t pos = strs.find(pattern);
+
+        while(pos != strs.npos)
+        {
+            string temp = strs.substr(0, pos);
+            res.push_back(temp);
+            //去掉已分割的字符串,在剩下的字符串中进行分割
+            strs = strs.substr(pos+1, strs.size());
+            pos = strs.find(pattern);
+        }
+
+        return res;
+    }
+
+    // Load and process a single image
   void loadImages() {
     cv::Mat image;
     cv::Mat image_gray;
-
     for (list<string>::iterator it=m_imgNames.begin(); it!=m_imgNames.end(); it++) {
       image = cv::imread(*it); // load image with opencv
-      processImage(image, image_gray);
-      while (cv::waitKey(100) == -1) {}
+      m_name=*it;
+      if(!image.data)
+      {
+          cout<<"load image failed. please check the input."<<endl;
+          return;
+      }
+      int noDetection=processImage(image, image_gray);
+      if(noDetection)
+      {
+          numNoDetections++;
+          cout << *it<<" is not detected."<<endl;
+      }
     }
+    cout<<"recognize rate: "<<fixed<<setprecision(2) << (float)100*(m_imgNames.size()-numNoDetections)/m_imgNames.size();
+    cout<<"% "<<m_imgNames.size()-numNoDetections<<"/"<<m_imgNames.size()<<endl;
   }
 
   // Video or image processing?
@@ -485,7 +576,23 @@ public:
     }
   }
 
+  void loadfiles(cv::String fileType)
+  {
+      vector<cv::String> filenames;
+      cv::glob(fileType, filenames,false);
+
+      size_t count=filenames.size();
+      for(size_t i=0; i<count;i++)
+      {
+        m_imgNames.push_back(filenames[i]);
+        cout<< "name: "<<filenames[i]<<endl;
+      }
+      cout<<"m_imgNames size:"<<m_imgNames.size()<<endl;
+  }
+
 }; // Demo
+
+
 
 
 // here is were everything begins
@@ -494,6 +601,8 @@ int main(int argc, char* argv[]) {
 
   // process command line options
   demo.parseOptions(argc, argv);
+
+  demo.loadfiles(string(argv[3]));
 
   demo.setup();
 

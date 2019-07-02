@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 project(apriltags)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 #add_definitions(-pg) #"-fopenmp)
 
 # pull in the pods macros. See cmake/pods.cmake for documentation
@@ -9,12 +11,16 @@ include(cmake/pods.cmake)
 
 file(GLOB SOURCE_FILES "src/*.cc")
 include_directories(AprilTags . /opt/local/include)
-add_library(apriltags ${SOURCE_FILES})
+add_library(apriltags SHARED ${SOURCE_FILES})
+
+set(OpenCV_DIR /home/yao/tool/opencv-3.4.0/build)
 
 find_package(OpenCV)
 include_directories(${OpenCV_INCLUDE_DIRS})
 target_link_libraries(apriltags ${OpenCV_LIBS}) #-pg) #-fopenmp)
 pods_use_pkg_config_packages(apriltags eigen3)
+
+message("opencv" ${OpenCV_INCLUDED_DIR})
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries(apriltags -L/opt/local/lib/) # MacPorts special treatment...
