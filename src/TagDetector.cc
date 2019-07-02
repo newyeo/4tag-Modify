@@ -245,23 +245,6 @@ namespace AprilTags {
 
         cv::Mat dst_laplacian, tmp_mean, tmp_std;
         cv::cvtColor(image_color, image, cv::COLOR_RGB2GRAY);
-//        cv::Laplacian(im_gray,dst_laplacian, CV_16U, 3);
-//        cv::meanStdDev(dst_laplacian, tmp_mean, tmp_std);
-//        double mean=tmp_mean.at<double>(0,0);
-//        double std =tmp_std.at<double>(0,0);
-//
-//        //********preprocessing************
-//        if(std*std<40)
-//        {
-//            std::cout << "mean:"<<mean<<", std:"<<std*std<<std::endl;
-//            cv::Mat kernel(3,3,CV_32F,cv::Scalar(-1));
-//            kernel.at<float>(1,1)=8.9;
-//            cv::filter2D(im_gray,image,image_color.depth(),kernel);
-//        } else{
-//            im_gray.copyTo(image);
-//        }
-
-        //=============end=================
 
         std::vector<TagDetection> goodDetections;
 
@@ -741,6 +724,7 @@ namespace AprilTags {
         // bits and see if they make sense.
 
         std::vector<TagDetection> detections;
+
         N++;
         bool saved=false;
         float max_perimeter=0;
@@ -753,7 +737,6 @@ namespace AprilTags {
 
         for (unsigned int qi = 0; qi < quads.size(); qi++) {
             Quad &quad = quads[qi];
-
 
             if (max_perimeter < PERIMETER_THRESHOLD)
             {
@@ -821,20 +804,6 @@ namespace AprilTags {
                         cv::imshow("decode_quads_step8", image_color);
                     }
 #endif
-                }
-            }
-
-            if(bad)
-            {
-                string tmp_path=preFixPath+"Rectfail/";
-                if (access(tmp_path.c_str(), 0) == -1)	//如果文件夹不存在
-                    mkdir(tmp_path.c_str(),0777);
-                string filename=tmp_path+"Rectfail"+to_string(N)+".jpg";
-                if (!saved)
-                {
-                    cv::imwrite(filename,image_src);
-                    cout<<"Bad dectect failed file save to: "<<filename<<endl;
-                    saved=true;
                 }
             }
 

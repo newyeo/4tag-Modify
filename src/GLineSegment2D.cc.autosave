@@ -1,0 +1,74 @@
+#include "GLineSegment2D.h"
+#include <limits>
+
+namespace AprilTags {
+
+GLineSegment2D::GLineSegment2D(const std::pair<float,float>& p0Arg, const std::pair<float,float>& p1Arg)
+: line(p0Arg,p1Arg), p0(p0Arg), p1(p1Arg), weight() {}
+
+GLineSegment2D GLineSegment2D::lsqFitXYW(const std::vector<XYWeight>& xyweight) 
+{
+        //画出二维线
+	GLine2D gline = GLine2D::lsqFitXYW(xyweight);
+	float maxcoord = -std::numeric_limits<float>::infinity();
+	float mincoord = std::numeric_limits<float>::infinity();;
+	
+	for (unsigned int i = 0; i < xyweight.size(); i++) 
+        {
+	    std::pair<float,float> p(xyweight[i].x, xyweight[i].y);
+	    float coord = gline.getLineCoordinate(p);
+	    maxcoord = std::max(maxcoord, coord);
+	    mincoord = std::min(mincoord, coord);
+	}
+	
+	std::pair<float,float> minValue = gline.getPointOfCoordinate(mincoord);
+	std::pair<float,float> maxValue = gline.getPointOfCoordinate(maxcoord);
+	return GLineSegment2D(minValue,maxValue);
+}
+
+} // namespace
+
+/*
+GLine2D GLine2D::lsqFitXYW(const std::vector<XYWeight>& xyweights) 
+{
+  float Cxx=0, Cyy=0, Cxy=0, Ex=0, Ey=0, mXX=0, mYY=0, mXY=0, mX=0, mY=0;
+  float n=0;
+
+  int idx = 0;
+  
+  for (unsigned int i = 0; i < xyweights.size(); i++) 
+  {
+    float x = xyweights[i].x;
+    float y = xyweights[i].y;
+    float alpha = xyweights[i].weight;
+
+    mY  += y*alpha;
+    mX  += x*alpha;
+    mYY += y*y*alpha;
+    mXX += x*x*alpha;
+    mXY += x*y*alpha;
+    n   += alpha;
+
+    idx++;
+  }
+  
+  Ex  = mX/n;
+  Ey  = mY/n;
+  Cxx = mXX/n - MathUtil::square(mX/n);
+  Cyy = mYY/n - MathUtil::square(mY/n);
+  Cxy = mXY/n - (mX/n)*(mY/n);
+
+  // find dominant direction via SVD
+  float phi = 0.5f*std::atan2(-2*Cxy,(Cyy-Cxx));
+  
+  // float rho = Ex*cos(phi) + Ey*sin(phi); 
+  //why is this needed if he never uses it?
+  std::pair<float,float> pts = std::pair<float,float>(Ex,Ey);
+
+  // compute line parameters
+  return GLine2D(-std::sin(phi), std::cos(phi), pts);
+}
+*/
+
+
+
